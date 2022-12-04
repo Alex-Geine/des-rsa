@@ -60,6 +60,8 @@ public:
 	string Code(string in);
 	//функция f
 	void funk(bool *in, bool * out, int I);
+	//функция f
+	void funk(bool* in, bool* out);
 	//функция получения раундовых ключей
 	void Get_RKeys();
 	

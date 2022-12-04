@@ -179,7 +179,17 @@ HCURSOR CdesDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
+//циклический сдвиг вправо
+void Shift(bool* in, int n = 56) {
+	bool buf[56];
 
+	for (int i = 0; i < 56; i++)
+		buf[i] = in[i];
+	in[0] = buf[55];
+
+	for (int i = 1; i < n; i++)
+		in[i] = buf[i - 1];
+}
 //получение бита с позиции
 bool get_bit(char ch, int pos) {
 	return ch & (1 << pos);
@@ -190,8 +200,52 @@ bool get_bit(int in, int pos) {
 
 //Функция получения раундовых ключей
 void  CdesDlg::Get_RKeys() {
+	//Tables
+	const int PC_1[56] =
+	{ 57,49,41,33,25,17,9,
+   1,58,50,42,34,26,18,
+   10,2,59,51,43,35,27,
+   19,11,3,60,52,44,36,
+   63,55,47,39,31,23,15,
+   7,62,54,46,38,30,22,
+   14,6,61,53,45,37,29,
+   21,13,5,28,20,12,4 };	//таблица перестановок для C0 & D0
 
+	const int PC_2[48] = { 14,17,11,24,1,5,
+					   3,28,15,6,21,10,
+					   23,19,12,4,26,8,
+					   16,7,27,20,13,2,
+					   41,52,31,37,47,55,
+					   30,40,51,45,33,48,
+					   44,49,39,56,34,53,
+					   46,42,50,36,29,32 };  //таблица для раундовых ключей
+
+	const int PC_3[16] = { 1,1,2,2,
+							2,2,2,2,
+							1,2,2,2,
+							2,2,2,1
+
+	}; //таблица сдвигов
+	
+	//генерация раундовых ключей(r_keys) //перенеси в отдельную функцию
+
+	//определение C0 & D0
+	bool CD[56]; //блоки СД
+
+	for (int i = 0; i < 56; i++)
+		CD[i] = bit_key[PC_1[i] - 1];
+
+	//генерация раундовых ключей
+	for (int i = 0; i < 16; i++) {
+		//циклический сдвиг вправо
+		for (int j = 0; j < PC_3[i]; j++)
+			Shift(CD);
+		//выбор раундового ключа
+		for (int j = 0; j < 48; j++)
+			r_keys[i][j] = CD[PC_2[j] - 1];
+	}
 }
+
 //перевод из битового предствавления в символьное
 string Convert_simb( bool* in) {
 	string res;
@@ -253,47 +307,12 @@ void Convert_bit(string in, bool *res) {
 
 
 
-//циклический сдвиг вправо
-void Shift(bool* in, int n = 56) {
-	bool buf[56];
 
-	for (int i = 0; i < 56; i++)
-		buf[i] = in[i];
-	in[0] = buf[55];
-
-	for (int i = 1; i < n ; i++)
-		in[i] = buf[i - 1];	
-}
 
 //генерация ключа
 void CdesDlg::OnBnClickedButton7()
 {
-	//Tables
-	const int PC_1[56] =									
-						{ 57,49,41,33,25,17,9,
-					   1,58,50,42,34,26,18,
-					   10,2,59,51,43,35,27,
-					   19,11,3,60,52,44,36,
-					   63,55,47,39,31,23,15,
-					   7,62,54,46,38,30,22,
-					   14,6,61,53,45,37,29,
-					   21,13,5,28,20,12,4 };	//таблица перестановок для C0 & D0
 	
-	const int PC_2[48] = { 14,17,11,24,1,5,
-					   3,28,15,6,21,10,
-					   23,19,12,4,26,8,
-					   16,7,27,20,13,2,
-					   41,52,31,37,47,55,
-					   30,40,51,45,33,48,
-					   44,49,39,56,34,53,
-					   46,42,50,36,29,32 };  //таблица для раундовых ключей
-	
-	const int PC_3[16] = {1,1,2,2,
-							2,2,2,2,
-							1,2,2,2,
-							2,2,2,1
-
-	}; //таблица сдвигов
 
 
 	Key.clear();
@@ -329,23 +348,7 @@ void CdesDlg::OnBnClickedButton7()
 	
 
 	
-	//генерация раундовых ключей(r_keys) //перенеси в отдельную функцию
 	
-	//определение C0 & D0
-	bool CD[56]; //блоки СД
-
-	for (int i = 0; i < 56; i++)
-		CD[i] = bit_key[PC_1[i] - 1];
-
-	//генерация раундовых ключей
-	for (int i = 0; i < 16; i++) {
-		//циклический сдвиг вправо
-		for (int j = 0; j < PC_3[i]; j++)
-			Shift(CD);
-		//выбор раундового ключа
-		for (int j = 0; j < 48; j++)
-			r_keys[i][j] = CD[PC_2[j] - 1];
-	}
 	//Затесть всю эту шайку лейку и раздели на модули(выдели функцию генерации раундовых ключей)
 
 
@@ -353,37 +356,6 @@ void CdesDlg::OnBnClickedButton7()
 	UpdateData(false);
 
 	
-}
-
-//Shift() --> TRUE
-//GEn_key --> TRUE
-//r_Keys --> TRUE
-
-// С генерацией ключей все вообще с кайфом огромным
-
-
-void CdesDlg::Test() {
-	fstream file;
-
-	file.open("data.txt");
-
-	for (int y = 0; y < 5; y++) {
-		for (int j = 0; j < 16; j++) {
-			for (int i = 0; i < 48; i++)
-				file << r_keys[j][i];
-			file << endl;
-
-			
-		}
-
-		file << " NEW" << endl;
-	}
-	
-	
-	
-	
-
-	file.close();
 }
 
 //функция f шифрации
@@ -491,7 +463,9 @@ void CdesDlg::funk(bool* in, bool*out, int I) {
 
 //функция шифрации
 string CdesDlg::Code(string in) {
-
+	//получение раундовых ключей
+	Get_RKeys();
+	
 	//начальные перестановки битов (mod 64 - val)
 	static const size_t IP[64] =
 	{ 
@@ -503,6 +477,7 @@ string CdesDlg::Code(string in) {
 					 59,51,43,35,27,19,11,3,
 					 61,53,45,37,29,21,13,5,
 					 63,55,47,39,31,23,15,7 };
+	
 	//конечная перестановка
 	static const size_t IP_1[64] = { 
 						40,8,48,16,56,24,64,32,
@@ -514,48 +489,48 @@ string CdesDlg::Code(string in) {
 					   34,2,42,10,50,18,58,26,
 					   33,1,41,9,49,17,57,25 };
 
-	string res;
+	string res; //строка с результатом
+
 	bool
 		M[64], //представление 8 символов в битах
 		L1[32], //левый блок в преобразовании Фейстеля
 		L2[32]; //правый
 
 	int f; // индекс бита в массиве M
-	int Byte = 8; 
 	
-	//представление символов в битах
-	for (int j = 0; j < Byte; j++) {
-		f = (j+1)  * Byte - 1; // 7 15 23 ...
-		for (int i = 0; i < Byte; i++) {
+	
+	//представление символов в битах      (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ВАЖНО!!!!!!!!!!!!!!!!!!!!!!!!) зачем тут f &&&
+	for (int j = 0; j < 8; j++) {
+		f = (j+1)  * 7; // 7 15 23 ...
+		for (int i = 0; i < 8; i++) {
 			M[f] = get_bit(in[j], i); //get_bit получает биты справа налево
 			f--;
 		}		
 	
 	}
 
-
 	//начальная перестановка
 	for (int i = 0; i < 64; i++) {
 		if (i < 32)
 			L1[i] = M[IP[i] - 1];
-		if (i >= 32)
+		else
 			L2[i - 32] = M[IP[i] - 1];
 	}
 	
-
-
 	//преобразование Фейстеля
 	for (int i = 0; i < 16; i++) {
 		bool 
-			RNew[32],
-			mas[32];
+			RNew[32],//результат XOR
+			mas[32]; // результат f()
 				
 		//функция f
-		funk(L2,mas, i);
+		funk(L2,mas,i);
 		
 		//xor L1 & f(L2, ki)
-		for (int j = 0; j < 32; j++)
-			RNew[i] = L1[i] ^ mas[i];
+		for (int j = 0; j < 32; j++) {
+			RNew[j] = L1[j] ^ mas[j]; // r_keys[0][j];
+			
+		}			
 		
 		//перестановка блоков
 		for (int j = 0; j < 32; j++)
@@ -573,15 +548,13 @@ string CdesDlg::Code(string in) {
 			M[i] = L2[i - 32];
 	}
 		
-	
 	//обратная подстановка
 	bool M_1[64];
 	for (int i = 0; i < 64; i++) {		
-		M_1[i] = M[IP_1[i-1]- 1];
+		M_1[i] = M[IP_1[i] - 1];
 	}
 		
-	//перевод из битоВОго представления в обычное
-	
+	//перевод из битоВОго представления в символьное
 	res = Convert_simb(M_1);
 	
 	return res;
@@ -589,6 +562,8 @@ string CdesDlg::Code(string in) {
 
 //Функция декодирования
 string CdesDlg::DeCode(string in) {
+	//получение раундовых ключей
+	Get_RKeys();
 
 	//начальные перестановки битов (mod 64 - val)
 	static const size_t IP[64] =
@@ -601,6 +576,7 @@ string CdesDlg::DeCode(string in) {
 					 59,51,43,35,27,19,11,3,
 					 61,53,45,37,29,21,13,5,
 					 63,55,47,39,31,23,15,7 };
+	
 	//конечная перестановка
 	static const size_t IP_1[64] = {
 						40,8,48,16,56,24,64,32,
@@ -621,157 +597,94 @@ string CdesDlg::DeCode(string in) {
 	int f; // индекс бита в массиве M
 	int Byte = 8;
 
-	//представление символов в битах
-	for (int j = 0; j < Byte; j++) {
-		f = (j + 1) * Byte - 1; // 7 15 23 ...
-		for (int i = 0; i < Byte; i++) {
+	//представление символов в битах      (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ВАЖНО!!!!!!!!!!!!!!!!!!!!!!!!) зачем тут f &&&
+	for (int j = 0; j < 8; j++) {
+		f = (j + 1) * 7; // 7 15 23 ...
+		for (int i = 0; i < 8; i++) {
 			M[f] = get_bit(in[j], i); //get_bit получает биты справа налево
 			f--;
 		}
 
 	}
 
-	/*fstream file;
-	file.open("data.txt");
-	if (file.is_open()) {
-		for (int i = 0; i < 64; i++)
-			file << M[i];
-		file << endl;
-
-	}
-	file.close();*/
-
+	bool M_2[64];
+	for (int i = 0; i < 64; i++) 
+		M_2[IP_1[i] - 1] = M[i];
+	
 	//начальная перестановка
 	for (int i = 0; i < 64; i++) {
 		if (i < 32)
-			L1[i] = M[IP_1[i] - 1];
-		if (i >= 32)
-			L2[i - 32] = M[IP_1[i] - 1];
+			L1[i] = M_2[i];// M[i];
+		else
+			L2[i - 32] = M_2[i]; // M[i];
 	}
 
-	/*fstream file;
-	file.open("data.txt");
-	if (file.is_open()) {
-		for (int i = 0; i < 64; i++)
-			file << M[i];
-		file << endl;
-		for (int i = 0; i < 32; i++)
-			file << L1[i];
-
-		for (int i = 0; i < 32; i++)
-			file << L2[i];
-		file << endl;
-	}
-	file.close();*/
 
 
 	//преобразование Фейстеля
-	for (int i = 0; i < 16; i++) {
-		bool LNew[32], mas[32];
-
+	for (int i = 15; i >= 0; i--) {
+		bool
+			RNew[32],
+			mas[32];
 
 		//функция f
-		funk(L1, mas, 32);
-
-
+		funk(L1, mas,i);
 
 		//xor L1 & f(L2, ki)
-		for (int j = 0; j < 32; j++)
-			LNew[i] = L2[i] ^ mas[i];
-
-
+		for (int j = 0; j < 32; j++) 
+			RNew[j] = L2[j] ^ mas[j];
+			
+		
+			
 
 		//перестановка блоков
-
-
 		for (int j = 0; j < 32; j++)
 			L2[j] = L1[j];
 
 		for (int j = 0; j < 32; j++)
-			L1[j] = LNew[j];
-
-
+			L1[j] = RNew[j];
 	}
-
 
 	//Обьединение блоков
 	for (int i = 0; i < 64; i++) {
 		if (i < 32)
 			M[i] = L1[i];
-		if (i >= 32)
+		else
 			M[i] = L2[i - 32];
 	}
-
-
 
 
 	//обратная подстановка
 	bool M_1[64];
 	for (int i = 0; i < 64; i++) {
-		M_1[i] = M[IP[i - 1] - 1];
+		M_1[IP[i] - 1] = M[i];//  M[i];
 	}
-
-	fstream file;
-	file.open("data.txt");
-	if (file.is_open()) {
-		file << "M1:" << endl;
-		for (int i = 0; i < 64; i++)
-			file << M_1[i];
-		file << endl;
-		/*for (int i = 0; i < 32; i++)
-			file << L1[i];
-
-		for (int i = 0; i < 32; i++)
-			file << L2[i];
-		file << endl;*/
-	}
-
-
-
 
 	//перевод из битоВОго представления в обычное
 
-	for (int i = 0; i < Byte; i++) {
-		unsigned char a = 0;
-		int init = 0;
-		for (int j = 7; j >= 0; j--) {
-			if (M_1[Byte * i + j])
-			{
-				a = a | (1 << init);
-				file << "j: " << j << " int a = " << (int)a << endl;
-			}
-			if (!M_1[Byte * i + j]) {
-				//	a = a << 1;
-				file << "j: " << j << " int a = " << (int)a << endl;
-			}
-			init++;
-		}
-
-		res.push_back(a);
-	}
-	file.close();
+	res = Convert_simb(M_1);
 
 	return res;
 }
 
 
-int f = 1;
+//int f = 1;
 //преобразование
 void CdesDlg::OnBnClickedOk()
 {
 	
-	if (f == 1) {
-		check.SetCheck(true);
-		f++;
-	}
+	//if (f == 1) {
+	//	check.SetCheck(true);
+	//	f++;
+	//}
 		
 	setlocale(LC_ALL, "rus");
 	UpdateData(true);
 
 	//исходные данные
 
-	//string data;
 	string data;
+	/*
 	if (check.GetCheck()) {
 		USES_CONVERSION;
 		data = W2A(plain_t);
@@ -779,7 +692,12 @@ void CdesDlg::OnBnClickedOk()
 	if (!check.GetCheck()) {
 		USES_CONVERSION;
 		data = W2A(closed_t);
-	}
+	}*/
+
+	//перепиши, чтобы в строку закидывалось произвольное количество данныъх
+
+	string text = "12345678";
+	string ctext;
 
 	//Число блоков
 	int blockNum = (data.length() % key_size == 0) ? (data.length() / key_size) : (data.length() / key_size + 1);
@@ -787,26 +705,42 @@ void CdesDlg::OnBnClickedOk()
 	string res;// (blockNum * key_size);
 	res.resize(blockNum * key_size);
 
-	//алгоритм кодирования
-	/*
-	* for (int i = 0; i < blockNum; i++) {
-		for (int j = 0; j < key_size; j++) {
-			if (i * key_size + j < data.length())
-				res[i * key_size + j] = data[i * key_size + j] ^ key[j];
-			else
-				res[i * key_size + j] = key[j];
-		}
-	}
-	*/
-	if(check.GetCheck())res = Code(data);
-	if(!check.GetCheck())res = DeCode(data);
+	   
+
+	//попробуем просто переставлять блоки местами
+	
+	res = Code(text);
+	fstream file;
+	file.open("data.txt");
+	file << "old text:  " << text << endl;
+	file << endl;
+	file << "key:  " << Key << endl;
+	file << endl;
+	file << "ctext:  " << res << endl;
+	file << endl;
+
+	text = DeCode(res);
+
+	file << "new text:  " << text << endl;
+
+	file.close();
 
 
-	//заполнение строки для вывода
-	if (check.GetCheck())
-		closed_t = res.c_str();
-	if (!check.GetCheck())
-		plain_t = res.c_str();
+
+
+
+
+
+
+	//if(check.GetCheck())res = Code(data);
+	//if(!check.GetCheck())res = DeCode(data);
+
+
+	////заполнение строки для вывода
+	//if (check.GetCheck())
+	//	closed_t = res.c_str();
+	//if (!check.GetCheck())
+	//	plain_t = res.c_str();
 
 
 	UpdateData(false);
@@ -864,6 +798,7 @@ void CdesDlg::OnBnClickedRadio1()
 		check.SetCheck(false);
 	else
 		check.SetCheck(true);
+	UpdateData(true);
 	// TODO: добавьте свой код обработчика уведомлений
 }
 
