@@ -1,7 +1,8 @@
 old text:  12345678
 
-key:  ^EÎĞ÷@%
+key:  
 
-ctext:  %:†“=F¦
+ctext:  0dÉ£FÍœ
 
-new text:  »ãAlêEÄÿ
+new text:  0Ë%y§?ÿ
+Š#Ü

@@ -3,6 +3,7 @@
 //
 #include <iostream>
 #include <fstream>
+#include "Encryption.h"
 #pragma once
 
 using namespace std;
@@ -83,4 +84,18 @@ public:
 	bool r_keys[16][48];
 
 
+	Message mes;
+	
+
+	BOOL checkDES;
+	BOOL checkRSA;
+	afx_msg void OnBnClickedCheck1();
+	afx_msg void OnBnClickedCheck2();
+	afx_msg void OnEnChangeEdit4();
+	unsigned long long n;
+	unsigned long long d;
+	unsigned long long e;
+	unsigned long long q;
+	unsigned long long p;
+	unsigned long long f;
 };

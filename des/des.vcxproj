@@ -185,6 +185,7 @@
   <ItemGroup>
     <ClInclude Include="des.h" />
     <ClInclude Include="desDlg.h" />
+    <ClInclude Include="Encryption.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
