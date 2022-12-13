@@ -61,7 +61,7 @@ END_MESSAGE_MAP()
 CdesDlg::CdesDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_DES_DIALOG, pParent)
 	
-	, plain_t(_T("привет"))
+	, plain_t(_T("123"))
 	, closed_t(_T(""))
 	, key(_T(""))
 	
@@ -294,7 +294,7 @@ void CdesDlg::OnBnClickedOk()
 				else
 					buf.push_back(0);
 			}
-			if (!check.GetCheck()) {
+			if (check.GetCheck()) {
 				des.SetPlain(buf);
 				buf = des.Code();
 			}
